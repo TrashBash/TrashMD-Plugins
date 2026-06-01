@@ -1,0 +1,29 @@
+{
+	"version": 1,
+	"plugins": [
+		{
+			"id": "quick_transform",
+			"name": "Quick Transform",
+			"description": "Reset position, rotation, or scale on selected nodes. Supports multi-selection and full undo.",
+			"version": "1.0.0",
+			"author": "TrashBash",
+			"download_path": "quick_transform/__main__.tmdplugin"
+		},
+		{
+			"id": "material_clipboard",
+			"name": "Material Clipboard",
+			"description": "Copy material properties from one material asset and paste them onto another. Paste is fully undoable.",
+			"version": "1.0.0",
+			"author": "TrashBash",
+			"download_path": "material_clipboard/__main__.tmdplugin"
+		},
+		{
+			"id": "unused_assets",
+			"name": "Unused Asset Cleaner",
+			"description": "Find and report unused assets in the project. Models, materials, and textures not referenced in the scene.",
+			"version": "1.0.0",
+			"author": "TrashBash",
+			"download_path": "unused_assets/__main__.tmdplugin"
+		}
+	]
+}

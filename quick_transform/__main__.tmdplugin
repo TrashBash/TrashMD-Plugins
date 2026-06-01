@@ -1,0 +1,213 @@
+/*
+@plugin
+name: Quick Transform
+description: Reset position, rotation, or scale on selected nodes. Supports multi-selection and full undo.
+version: 1.0.0
+author: TrashBash
+permissions: core, commands, context, tmd
+*/
+
+// @ Helpers
+
+GatherSelectedNodes = function()
+{
+	var _all = selection_get_all();
+	if (is_array(_all) and array_length(_all) > 0)
+	{
+		return _all;
+	}
+
+	var _single = selection_get();
+	if (_single != undefined)
+	{
+		return [_single];
+	}
+
+	return [];
+}
+
+PollSelectedNodes = function()
+{
+	var _nodes = global.GatherSelectedNodes();
+	if (array_length(_nodes) == 0)
+	{
+		return undefined;
+	}
+	return { nodes: _nodes };
+}
+
+// @ Commands
+
+ResetPositionCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "qtransform.reset_position";
+	self.label		= "Reset Position";
+	self.category	= "Quick Transform";
+	self.undoable	= true;
+
+	self.Poll = global.PollSelectedNodes;
+
+	self.Execute = function(_params)
+	{
+		var _undoData = [];
+		for (var i = 0; i < array_length(_params.nodes); i += 1)
+		{
+			var _node = _params.nodes[i];
+			var _oldPos = node_get_position(_node);
+			array_push(_undoData, { node: _node, pos: _oldPos });
+			node_set_position(_node, 0, 0, 0);
+		}
+		SUCCESS("Reset position on " + string(array_length(_undoData)) + " node(s)");
+		return _undoData;
+	}
+
+	self.Undo = function(_undoData)
+	{
+		for (var i = 0; i < array_length(_undoData); i += 1)
+		{
+			var _e = _undoData[i];
+			node_set_position(_e.node, _e.pos[0], _e.pos[1], _e.pos[2]);
+		}
+		LOG("Undo: restored position on " + string(array_length(_undoData)) + " node(s)");
+	}
+});
+
+ResetRotationCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "qtransform.reset_rotation";
+	self.label		= "Reset Rotation";
+	self.category	= "Quick Transform";
+	self.undoable	= true;
+
+	self.Poll = global.PollSelectedNodes;
+
+	self.Execute = function(_params)
+	{
+		var _undoData = [];
+		for (var i = 0; i < array_length(_params.nodes); i += 1)
+		{
+			var _node = _params.nodes[i];
+			var _oldRot = node_get_rotation(_node);
+			array_push(_undoData, { node: _node, rot: _oldRot });
+			node_set_rotation(_node, 0, 0, 0);
+		}
+		SUCCESS("Reset rotation on " + string(array_length(_undoData)) + " node(s)");
+		return _undoData;
+	}
+
+	self.Undo = function(_undoData)
+	{
+		for (var i = 0; i < array_length(_undoData); i += 1)
+		{
+			var _e = _undoData[i];
+			node_set_rotation(_e.node, _e.rot[0], _e.rot[1], _e.rot[2]);
+		}
+		LOG("Undo: restored rotation on " + string(array_length(_undoData)) + " node(s)");
+	}
+});
+
+ResetScaleCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "qtransform.reset_scale";
+	self.label		= "Reset Scale";
+	self.category	= "Quick Transform";
+	self.undoable	= true;
+
+	self.Poll = global.PollSelectedNodes;
+
+	self.Execute = function(_params)
+	{
+		var _undoData = [];
+		for (var i = 0; i < array_length(_params.nodes); i += 1)
+		{
+			var _node = _params.nodes[i];
+			var _oldScale = node_get_scale(_node);
+			array_push(_undoData, { node: _node, scale: _oldScale });
+			node_set_scale(_node, 1, 1, 1);
+		}
+		SUCCESS("Reset scale on " + string(array_length(_undoData)) + " node(s)");
+		return _undoData;
+	}
+
+	self.Undo = function(_undoData)
+	{
+		for (var i = 0; i < array_length(_undoData); i += 1)
+		{
+			var _e = _undoData[i];
+			node_set_scale(_e.node, _e.scale[0], _e.scale[1], _e.scale[2]);
+		}
+		LOG("Undo: restored scale on " + string(array_length(_undoData)) + " node(s)");
+	}
+});
+
+ResetAllCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "qtransform.reset_all";
+	self.label		= "Reset All Transforms";
+	self.category	= "Quick Transform";
+	self.undoable	= true;
+
+	self.Poll = global.PollSelectedNodes;
+
+	self.Execute = function(_params)
+	{
+		var _undoData = [];
+		for (var i = 0; i < array_length(_params.nodes); i += 1)
+		{
+			var _node = _params.nodes[i];
+			var _oldPos   = node_get_position(_node);
+			var _oldRot   = node_get_rotation(_node);
+			var _oldScale = node_get_scale(_node);
+			array_push(_undoData, {
+				node: _node,
+				pos: _oldPos,
+				rot: _oldRot,
+				scale: _oldScale
+			});
+			node_set_position(_node, 0, 0, 0);
+			node_set_rotation(_node, 0, 0, 0);
+			node_set_scale(_node, 1, 1, 1);
+		}
+		SUCCESS("Reset all transforms on " + string(array_length(_undoData)) + " node(s)");
+		return _undoData;
+	}
+
+	self.Undo = function(_undoData)
+	{
+		for (var i = 0; i < array_length(_undoData); i += 1)
+		{
+			var _e = _undoData[i];
+			node_set_position(_e.node, _e.pos[0], _e.pos[1], _e.pos[2]);
+			node_set_rotation(_e.node, _e.rot[0], _e.rot[1], _e.rot[2]);
+			node_set_scale(_e.node, _e.scale[0], _e.scale[1], _e.scale[2]);
+		}
+		LOG("Undo: restored all transforms on " + string(array_length(_undoData)) + " node(s)");
+	}
+});
+
+// @ Lifecycle
+
+register = function()
+{
+	class_register("ResetPositionCmd", ResetPositionCommand);
+	class_register("ResetRotationCmd", ResetRotationCommand);
+	class_register("ResetScaleCmd", ResetScaleCommand);
+	class_register("ResetAllCmd", ResetAllCommand);
+
+	command_register("qtransform.reset_position", ResetPositionCommand);
+	command_register("qtransform.reset_rotation", ResetRotationCommand);
+	command_register("qtransform.reset_scale", ResetScaleCommand);
+	command_register("qtransform.reset_all", ResetAllCommand);
+
+	// Most node types (EMPTY, COLLECTION, CAMERA, LIGHT, etc.) share one
+	// menu instance, and MODEL_INSTANCE inherits from it. So registering
+	// once on node.EMPTY is enough to reach every node context menu.
+	contextmenu_add_command_item("node.EMPTY", "qtransform.reset_all");
+
+	LOG("Quick Transform: ready (4 commands)");
+}
+
+unregister = function()
+{
+	LOG("Quick Transform: disabled");
+}

@@ -1,0 +1,220 @@
+/*
+@plugin
+name: Material Clipboard
+description: Copy material properties from one material asset and paste them onto another. Paste is fully undoable.
+version: 1.0.0
+author: TrashBash
+permissions: core, commands, context, tmd
+*/
+
+// @ State
+
+clipboard = undefined;
+
+// @ Helpers
+
+ReadMaterialProps = function(_mat)
+{
+	var _data = {};
+	variable_struct_set(_data, "diffuse",    material_get_diffuse(_mat));
+	variable_struct_set(_data, "specular",   material_get_specular(_mat));
+	variable_struct_set(_data, "emission",   material_get_emission(_mat));
+	variable_struct_set(_data, "ambient",    material_get_ambient(_mat));
+	variable_struct_set(_data, "metallic",   material_get_metallic(_mat));
+	variable_struct_set(_data, "roughness",  material_get_roughness(_mat));
+	variable_struct_set(_data, "opacity",    material_get_opacity(_mat));
+	variable_struct_set(_data, "shininess",  material_get_shininess(_mat));
+	variable_struct_set(_data, "alpha_mode", material_get_alpha_mode(_mat));
+	variable_struct_set(_data, "cull_mode",  material_get_cull_mode(_mat));
+	return _data;
+}
+
+ApplyMaterialProps = function(_mat, _data)
+{
+	if (variable_struct_exists(_data, "diffuse"))
+	{
+		material_set_diffuse(_mat, _data.diffuse);
+	}
+	if (variable_struct_exists(_data, "specular"))
+	{
+		material_set_specular(_mat, _data.specular);
+	}
+	if (variable_struct_exists(_data, "emission"))
+	{
+		material_set_emission(_mat, _data.emission);
+	}
+	if (variable_struct_exists(_data, "ambient"))
+	{
+		material_set_ambient(_mat, _data.ambient);
+	}
+	if (variable_struct_exists(_data, "metallic"))
+	{
+		material_set_metallic(_mat, _data.metallic);
+	}
+	if (variable_struct_exists(_data, "roughness"))
+	{
+		material_set_roughness(_mat, _data.roughness);
+	}
+	if (variable_struct_exists(_data, "opacity"))
+	{
+		material_set_opacity(_mat, _data.opacity);
+	}
+	if (variable_struct_exists(_data, "shininess"))
+	{
+		material_set_shininess(_mat, _data.shininess);
+	}
+	if (variable_struct_exists(_data, "alpha_mode"))
+	{
+		material_set_alpha_mode(_mat, _data.alpha_mode);
+	}
+	if (variable_struct_exists(_data, "cull_mode"))
+	{
+		material_set_cull_mode(_mat, _data.cull_mode);
+	}
+}
+
+GetSelectedMaterialData = function()
+{
+	var _node = selection_get();
+	if (_node == undefined)
+	{
+		return undefined;
+	}
+	if (node_get_type(_node) != "MATERIAL")
+	{
+		return undefined;
+	}
+	return asset_get_data(_node);
+}
+
+// @ Commands
+
+CopyMaterialCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "matclip.copy";
+	self.label		= "Copy Material";
+	self.category	= "Material Clipboard";
+
+	self.Poll = function()
+	{
+		var _mat = global.GetSelectedMaterialData();
+		if (_mat == undefined)
+		{
+			return undefined;
+		}
+		return { mat: _mat };
+	}
+
+	self.Execute = function(_params)
+	{
+		global.clipboard = global.ReadMaterialProps(_params.mat);
+		var _name = node_get_name(selection_get());
+		SUCCESS("Copied material from \"" + _name + "\"");
+	}
+});
+
+PasteMaterialCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "matclip.paste";
+	self.label		= "Paste Material";
+	self.category	= "Material Clipboard";
+	self.undoable	= true;
+
+	self.Poll = function()
+	{
+		if (global.clipboard == undefined)
+		{
+			return undefined;
+		}
+		var _mat = global.GetSelectedMaterialData();
+		if (_mat == undefined)
+		{
+			return undefined;
+		}
+		return { mat: _mat };
+	}
+
+	self.Execute = function(_params)
+	{
+		var _oldProps = global.ReadMaterialProps(_params.mat);
+		global.ApplyMaterialProps(_params.mat, global.clipboard);
+		project_mark_dirty();
+
+		var _name = node_get_name(selection_get());
+		SUCCESS("Pasted material onto \"" + _name + "\"");
+		return { mat: _params.mat, oldProps: _oldProps };
+	}
+
+	self.Undo = function(_undoData)
+	{
+		global.ApplyMaterialProps(_undoData.mat, _undoData.oldProps);
+		project_mark_dirty();
+		LOG("Undo: restored material properties");
+	}
+});
+
+ShowClipboardCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "matclip.show";
+	self.label		= "Show Material Clipboard";
+	self.category	= "Material Clipboard";
+
+	self.Poll = function()
+	{
+		if (global.clipboard == undefined)
+		{
+			return undefined;
+		}
+		return {};
+	}
+
+	self.Execute = function(_params)
+	{
+		LOG("Material Clipboard:");
+		LOG("  Diffuse:    " + string(global.clipboard.diffuse));
+		LOG("  Specular:   " + string(global.clipboard.specular));
+		LOG("  Emission:   " + string(global.clipboard.emission));
+		LOG("  Metallic:   " + string(global.clipboard.metallic));
+		LOG("  Roughness:  " + string(global.clipboard.roughness));
+		LOG("  Opacity:    " + string(global.clipboard.opacity));
+		LOG("  Shininess:  " + string(global.clipboard.shininess));
+		LOG("  Alpha Mode: " + string(global.clipboard.alpha_mode));
+		LOG("  Cull Mode:  " + string(global.clipboard.cull_mode));
+	}
+});
+
+// @ Lifecycle
+
+IsMaterialNode = function(_ctx)
+{
+	if (_ctx == undefined or _ctx.node == undefined)
+	{
+		return false;
+	}
+	return _ctx.node.type == "MATERIAL";
+}
+
+register = function()
+{
+	class_register("CopyMaterialCmd", CopyMaterialCommand);
+	class_register("PasteMaterialCmd", PasteMaterialCommand);
+	class_register("ShowClipboardCmd", ShowClipboardCommand);
+
+	command_register("matclip.copy", CopyMaterialCommand);
+	command_register("matclip.paste", PasteMaterialCommand);
+	command_register("matclip.show", ShowClipboardCommand);
+
+	// Asset types share one menu instance, so use VisibleWhen to
+	// restrict these items to MATERIAL assets only.
+	contextmenu_add_separator("asset.MATERIAL").VisibleWhen(global.IsMaterialNode);
+	contextmenu_add_command_item("asset.MATERIAL", "matclip.copy").VisibleWhen(global.IsMaterialNode);
+	contextmenu_add_command_item("asset.MATERIAL", "matclip.paste").VisibleWhen(global.IsMaterialNode);
+
+	LOG("Material Clipboard: ready (3 commands)");
+}
+
+unregister = function()
+{
+	clipboard = undefined;
+	LOG("Material Clipboard: disabled");
+}

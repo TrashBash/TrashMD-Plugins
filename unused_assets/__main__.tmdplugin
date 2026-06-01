@@ -1,0 +1,153 @@
+/*
+@plugin
+name: Unused Asset Cleaner
+description: Find and report unused assets in the project. Models, materials, and textures not referenced in the scene.
+version: 1.0.0
+author: TrashBash
+permissions: core, commands, tmd
+*/
+
+// @ Helpers
+
+LogUnusedByType = function(_type)
+{
+	var _unused = asset_get_unused(_type);
+	if (array_length(_unused) == 0)
+	{
+		LOG("  " + _type + ": none");
+		return 0;
+	}
+
+	LOG("  " + _type + " (" + string(array_length(_unused)) + "):");
+	for (var i = 0; i < array_length(_unused); i += 1)
+	{
+		WARN("    - " + node_get_name(_unused[i]));
+	}
+	return array_length(_unused);
+}
+
+// @ Commands
+
+FindAllUnusedCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "cleaner.find_unused";
+	self.label		= "Find All Unused Assets";
+	self.category	= "Asset Cleaner";
+
+	self.Poll = function()
+	{
+		return {};
+	}
+
+	self.Execute = function(_params)
+	{
+		var _all = asset_get_unused();
+		if (array_length(_all) == 0)
+		{
+			SUCCESS("Project is clean — no unused assets found!");
+			return;
+		}
+
+		LOG("- Unused Asset Report -");
+		var _total = 0;
+		_total += global.LogUnusedByType("MODEL");
+		_total += global.LogUnusedByType("MATERIAL");
+		_total += global.LogUnusedByType("TEXTURE");
+
+		var _other = array_length(_all) - _total;
+		if (_other > 0)
+		{
+			LOG("  Other: " + string(_other));
+		}
+
+		WARN("Found " + string(array_length(_all)) + " unused asset(s) total");
+	}
+});
+
+FindUnusedModelsCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "cleaner.find_unused_models";
+	self.label		= "Find Unused Models";
+	self.category	= "Asset Cleaner";
+
+	self.Poll = function()
+	{
+		return {};
+	}
+
+	self.Execute = function(_params)
+	{
+		LOG("- Unused Models -");
+		var _count = global.LogUnusedByType("MODEL");
+		if (_count == 0)
+		{
+			SUCCESS("All models are in use!");
+		}
+	}
+});
+
+FindUnusedMaterialsCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "cleaner.find_unused_materials";
+	self.label		= "Find Unused Materials";
+	self.category	= "Asset Cleaner";
+
+	self.Poll = function()
+	{
+		return {};
+	}
+
+	self.Execute = function(_params)
+	{
+		LOG("- Unused Materials -");
+		var _count = global.LogUnusedByType("MATERIAL");
+		if (_count == 0)
+		{
+			SUCCESS("All materials are in use!");
+		}
+	}
+});
+
+FindUnusedTexturesCommand = extend("TrashMD_Command", function()
+{
+	self.id			= "cleaner.find_unused_textures";
+	self.label		= "Find Unused Textures";
+	self.category	= "Asset Cleaner";
+
+	self.Poll = function()
+	{
+		return {};
+	}
+
+	self.Execute = function(_params)
+	{
+		LOG("- Unused Textures -");
+		var _count = global.LogUnusedByType("TEXTURE");
+		if (_count == 0)
+		{
+			SUCCESS("All textures are in use!");
+		}
+	}
+});
+
+// @ Lifecycle
+
+register = function()
+{
+	class_register("FindAllUnusedCmd", FindAllUnusedCommand);
+	class_register("FindUnusedModelsCmd", FindUnusedModelsCommand);
+	class_register("FindUnusedMaterialsCmd", FindUnusedMaterialsCommand);
+	class_register("FindUnusedTexturesCmd", FindUnusedTexturesCommand);
+
+	command_register("cleaner.find_unused", FindAllUnusedCommand);
+	command_register("cleaner.find_unused_models", FindUnusedModelsCommand);
+	command_register("cleaner.find_unused_materials", FindUnusedMaterialsCommand);
+	command_register("cleaner.find_unused_textures", FindUnusedTexturesCommand);
+
+	LOG("Unused Asset Cleaner: ready (4 commands)");
+}
+
+unregister = function()
+{
+	LOG("Unused Asset Cleaner: disabled");
+}
